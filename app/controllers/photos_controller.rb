@@ -1,7 +1,14 @@
 class PhotosController < ApplicationController
-  def index
-    pp @photos = Photo.all
+ before_action :authenticate_user!
 
+  def index
+      @photos = Photo.all
+      @like = {}
+      @photos.each do |photo|
+          @vote = Vote.where(photo_id: photo.id).sum(:like)
+          @like[photo.id] = @votes
+        
+      end
   end
 
   def new
@@ -9,7 +16,8 @@ class PhotosController < ApplicationController
   end
   def create
     params[:photo][:category_id] = params[:category_id]
-    @photo = current_user.photos.build(photos_params) 
+    params[:photo][:user_id] = current_user.id
+    @photo = Photo.create(photos_params)  
     redirect_to photos_path
   end
   
@@ -24,6 +32,18 @@ class PhotosController < ApplicationController
   def destroy
     
   end
+
+  def vote
+    @photo = Photo.find(params[:id])
+    @vote = Vote.where(user_id: current_user.id, photo_id: @photo.id).first
+    if @vote == nil
+      @like = 1
+      Vote.create(user_id: current_user.id, photo_id: @photo.id, like: @like)
+    else
+      @vote.destroy
+    end
+    redirect_to photos_path
+end
 
   private
 def photos_params
